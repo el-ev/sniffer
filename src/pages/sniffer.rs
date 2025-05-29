@@ -237,7 +237,7 @@ impl SnifferPage {
             .skip(visible_start)
             .take(visible_end - visible_start)
             .map(|(i, packet)| {
-                let is_selected = self.selected_packet == Some(visible_start + i);
+                let is_selected = self.selected_packet == Some(i);
                 let base_style = if is_selected {
                     Style::default()
                         .bg(Color::Blue)
@@ -283,7 +283,7 @@ impl SnifferPage {
                         }),
                     ),
                     Span::styled(
-                        format!("{:<15}", packet.timestamp.split('.').next().unwrap_or("")),
+                        format!("{:<15}", packet.timestamp),
                         base_style.fg(if is_selected {
                             Color::White
                         } else {
@@ -291,7 +291,7 @@ impl SnifferPage {
                         }),
                     ),
                     Span::styled(
-                        format!("{:<10}", &packet.protocol[..8.min(packet.protocol.len())]),
+                        format!("{:<10}", &packet.protocol[..7.min(packet.protocol.len())]),
                         base_style.fg(if is_selected {
                             Color::White
                         } else {
@@ -362,9 +362,9 @@ impl SnifferPage {
     }
     fn render_help(&self, f: &mut Frame, area: Rect) {
         let help_text = if self.is_capturing && !self.following {
-            "S: Stop Capture  C: Clear Packets  ↑/↓: Scroll  F: Follow    Home/End: Jump  A: Filter  D: Device Selection  Enter: Open Packet  Q/Esc: Home"
+            "S: Stop Capture  C: Clear Packets  ↑/↓: Scroll  F: Follow  Home/End: Jump  A: Filter  D: Device Selection  Enter: Open Packet  Q/Esc: Home"
         } else if self.is_capturing && self.following {
-            "S: Stop Capture  C: Clear Packets  ↑/↓: Scroll  F: Unfollow  Home/End: Jump  A: Filter  D: Device Selection  Enter: Open Packet  Q/Esc: Home"
+            "S: Stop Capture  C: Clear Packets  F: Unfollow  A: Filter  D: Device Selection  Enter: Open Packet  Q/Esc: Home"
         } else if self.device_name.is_some() {
             "S: Start Capture  C: Clear Packets  A: Filter  D: Device Selection  Enter: Open Packet  Q/Esc: Home"
         } else {
@@ -407,7 +407,6 @@ impl SnifferPage {
         if index < self.packets.len() {
             self.selected_packet = Some(index);
 
-            // Ensure selected packet is visible
             let visible_start = self.scroll_position;
             let visible_end = visible_start + 20; // Approximate visible area
 
@@ -453,6 +452,9 @@ impl Component for SnifferPage {
             Event::Mouse(mouse_event) => {
                 match mouse_event.kind {
                     MouseEventKind::Down(MouseButton::Left) => {
+                        if self.following {
+                            return Ok(Some(Action::Handled));
+                        }
                         let area = Rect {
                             x: 0,
                             y: 0,
@@ -462,11 +464,17 @@ impl Component for SnifferPage {
                         self.handle_mouse_click(mouse_event.column, mouse_event.row, area);
                     }
                     MouseEventKind::ScrollUp => {
+                        if self.following {
+                            return Ok(Some(Action::Handled));
+                        }
                         if self.scroll_position > 0 {
                             self.scroll_position = self.scroll_position.saturating_sub(3);
                         }
                     }
                     MouseEventKind::ScrollDown => {
+                        if self.following {
+                            return Ok(Some(Action::Handled));
+                        }
                         if self.scroll_position + 20 < self.packets.len() {
                             self.scroll_position += 3;
                         }
@@ -490,8 +498,9 @@ impl Component for SnifferPage {
                     }
                 } else {
                     self.status_message =
-                        "No device selected. Press 'd' to select a device.".to_string();
+                        "No device selected. Press 'D' to select a device.".to_string();
                 }
+                return Ok(Some(Action::Handled));
             }
             KeyCode::Char('q') => {
                 if self.is_capturing {
@@ -500,6 +509,9 @@ impl Component for SnifferPage {
                 return Ok(Some(Action::NavigateToHome));
             }
             KeyCode::Char('d') => {
+                if self.is_capturing {
+                    self.stop_capture();
+                }
                 return Ok(Some(Action::NavigateToDevice));
             }
             KeyCode::Char('a') => {
@@ -507,16 +519,21 @@ impl Component for SnifferPage {
                     self.stop_capture();
                 }
                 self.filter_dialog.open();
+                return Ok(Some(Action::Handled));
             }
             KeyCode::Char('c') => {
                 self.packets.clear();
                 self.packet_count = 0;
                 self.scroll_position = 0;
-                self.selected_packet = None; // Clear selection
+                self.selected_packet = None;
                 self.status_message = "Cleared packet list.".to_string();
             }
             KeyCode::Char('f') => {
                 self.following = !self.following;
+                if !self.following {
+                    self.selected_packet = Some(self.packets.len().saturating_sub(1));
+                }
+                return Ok(Some(Action::Handled));
             }
             KeyCode::Enter => {
                 if let Some(selected_index) = self.selected_packet {
@@ -524,6 +541,9 @@ impl Component for SnifferPage {
                 }
             }
             KeyCode::Up => {
+                if self.following {
+                    return Ok(Some(Action::Handled));
+                }
                 if !self.packets.is_empty() {
                     if let Some(current) = self.selected_packet {
                         if current > 0 {
@@ -537,6 +557,9 @@ impl Component for SnifferPage {
                 }
             }
             KeyCode::Down => {
+                if self.following {
+                    return Ok(Some(Action::Handled));
+                }
                 if !self.packets.is_empty() {
                     if let Some(current) = self.selected_packet {
                         if current < self.packets.len() - 1 {
@@ -548,15 +571,23 @@ impl Component for SnifferPage {
                 } else if self.scroll_position + 20 < self.packets.len() {
                     self.scroll_position += 1;
                 }
+                return Ok(Some(Action::Handled));
             }
             KeyCode::Home => {
+                if self.following {
+                    return Ok(Some(Action::Handled));
+                }
                 if !self.packets.is_empty() {
                     self.select_packet(0);
                 } else {
                     self.scroll_position = 0;
                 }
+                return Ok(Some(Action::Handled));
             }
             KeyCode::End => {
+                if self.following {
+                    return Ok(Some(Action::Handled));
+                }
                 if !self.packets.is_empty() {
                     self.select_packet(self.packets.len() - 1);
                 } else if self.packets.len() > 20 {
@@ -564,6 +595,7 @@ impl Component for SnifferPage {
                 } else {
                     self.scroll_position = 0;
                 }
+                return Ok(Some(Action::Handled));
             }
             _ => {}
         }
@@ -599,9 +631,11 @@ impl Component for SnifferPage {
                     );
                 }
             }
-            _ => {}
+            _ => {
+                return Ok(None);
+            }
         }
-        Ok(None)
+        Ok(Some(Action::Handled))
     }
 }
 

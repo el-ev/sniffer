@@ -255,7 +255,7 @@ impl PacketDetailsPage {
     }
 
     fn render_help(&self, f: &mut Frame, area: Rect) {
-        let help_text = "↑/↓: Scroll Hex  Page Up/Down: Fast Scroll  Q/Esc: Back to Sniffer";
+        let help_text = "↑/↓: Scroll Hex  Q: Back to Sniffer  Esc: Back to Home";
 
         let help = Paragraph::new(help_text)
             .style(Style::default().fg(Color::Cyan))
