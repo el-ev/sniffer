@@ -19,7 +19,6 @@ pub enum Page {
 
 pub struct App {
     pub should_quit: bool,
-    pub last_tick_key_events: Vec<KeyEvent>,
     pub current_page: Page,
 
     pub home_page: HomePage,
@@ -33,7 +32,6 @@ impl App {
     pub fn new(action_tx: mpsc::UnboundedSender<Action>) -> Self {
         Self {
             should_quit: false,
-            last_tick_key_events: Vec::new(),
             current_page: Page::Home,
             home_page: HomePage::new(),
             device_page: DevicePage::new(),

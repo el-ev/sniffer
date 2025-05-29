@@ -8,15 +8,19 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
 };
-use tokio::sync::mpsc;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use std::thread;
+use tokio::sync::mpsc;
 
 use crate::{
     action::Action,
     component::{Component, ComponentRender},
     pages::filter::FilterDialog,
-    tui::Event, utils::packet::{parse_packet, PacketInfo},
+    tui::Event,
+    data::packet::{PacketInfo, parse_packet},
 };
 
 pub struct SnifferPage {
@@ -69,8 +73,7 @@ impl SnifferPage {
     pub fn set_device(&mut self, device_name: String) {
         self.device_name = Some(device_name.clone());
         self.status_message = format!(
-            "Device set to: {}. Press 'S' to start capturing.",
-            device_name
+            "Device set to: {device_name}. Press 'S' to start capturing."
         );
     }
 
@@ -95,22 +98,21 @@ impl SnifferPage {
                     match cap.filter(filter, true) {
                         Ok(_) => {
                             self.status_message = format!(
-                                "Capturing packets on {} with filter: {}. Press 'S' to stop.",
-                                device_name, filter
+                                "Capturing packets on {device_name} with filter: {filter}. Press 'S' to stop."
                             );
                         }
                         Err(e) => {
                             self.status_message =
-                                format!("Filter error: {}. Capturing without filter.", e);
+                                format!("Filter error: {e}. Capturing without filter.");
                         }
                     }
                 } else {
                     self.status_message =
-                        format!("Capturing packets on {}. Press 'S' to stop.", device_name);
+                        format!("Capturing packets on {device_name}. Press 'S' to stop.");
                 }
             } else {
                 self.status_message =
-                    format!("Capturing packets on {}. Press 'S' to stop.", device_name);
+                    format!("Capturing packets on {device_name}. Press 'S' to stop.");
             }
 
             let (packet_tx, packet_rx) = mpsc::unbounded_channel();
@@ -135,7 +137,7 @@ impl SnifferPage {
                         );
 
                         let packet_info = parse_packet(packet_id, timestamp, packet.data);
-                        
+
                         if packet_tx.send(packet_info).is_err() {
                             break;
                         }
@@ -156,14 +158,14 @@ impl SnifferPage {
     fn stop_capture(&mut self) {
         self.stop_capture_flag.store(true, Ordering::Relaxed);
         self.is_capturing = false;
-        
+
         // Wait for capture thread to finish
         if let Some(handle) = self.capture_thread_handle.take() {
             let _ = handle.join();
         }
-        
+
         self.packet_rx = None;
-        
+
         if let Some(ref device_name) = self.device_name {
             self.status_message = format!(
                 "Stopped capturing on {}. Captured {} packets.",
@@ -208,7 +210,13 @@ impl SnifferPage {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                "Info",
+                format!("{:<47}", "Source"),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("{:<47}", "Destination"),
                 Style::default()
                     .fg(Color::White)
                     .add_modifier(Modifier::BOLD),
@@ -218,7 +226,10 @@ impl SnifferPage {
         let mut items = vec![header];
 
         let visible_start = self.scroll_position;
-        let visible_end = std::cmp::min(visible_start + (area.height as usize).saturating_sub(3), self.packets.len());
+        let visible_end = std::cmp::min(
+            visible_start + (area.height as usize).saturating_sub(3),
+            self.packets.len(),
+        );
 
         let packet_items: Vec<ListItem> = self
             .packets
@@ -229,31 +240,88 @@ impl SnifferPage {
             .map(|(i, packet)| {
                 let is_selected = self.selected_packet == Some(visible_start + i);
                 let base_style = if is_selected {
-                    Style::default().bg(Color::Blue).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .bg(Color::Blue)
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
+                };
+
+                let source_str = if let Some(src_ip) = packet.src_ip {
+                    if let Some(src_port) = packet.src_port {
+                        if src_ip.is_ipv6() {
+                            format!("[{src_ip}]:{src_port}")
+                        } else {
+                            format!("{src_ip}:{src_port}")
+                        }
+                    } else {
+                        src_ip.to_string()
+                    }
+                } else {
+                    "N/A".to_string()
+                };
+                let destination_str = if let Some(dst_ip) = packet.dst_ip {
+                    if let Some(dst_port) = packet.dst_port {
+                        if dst_ip.is_ipv6() {
+                            format!("[{dst_ip}]:{dst_port}")
+                        } else {
+                            format!("{dst_ip}:{dst_port}")
+                        }
+                    } else {
+                        dst_ip.to_string()
+                    }
+                } else {
+                    "N/A".to_string()
                 };
 
                 let line = Line::from(vec![
                     Span::styled(
                         format!("{:<6}", packet.id),
-                        base_style.fg(if is_selected { Color::White } else { Color::Yellow }),
+                        base_style.fg(if is_selected {
+                            Color::White
+                        } else {
+                            Color::Yellow
+                        }),
                     ),
                     Span::styled(
                         format!("{:<15}", packet.timestamp.split('.').next().unwrap_or("")),
-                        base_style.fg(if is_selected { Color::White } else { Color::Gray }),
+                        base_style.fg(if is_selected {
+                            Color::White
+                        } else {
+                            Color::Gray
+                        }),
                     ),
                     Span::styled(
                         format!("{:<10}", packet.protocol),
-                        base_style.fg(if is_selected { Color::White } else { Color::Cyan }),
+                        base_style.fg(if is_selected {
+                            Color::White
+                        } else {
+                            Color::Cyan
+                        }),
                     ),
                     Span::styled(
                         format!("{:<10}", packet.length),
-                        base_style.fg(if is_selected { Color::White } else { Color::Green }),
+                        base_style.fg(if is_selected {
+                            Color::White
+                        } else {
+                            Color::Green
+                        }),
                     ),
                     Span::styled(
-                        &packet.info, 
-                        base_style.fg(if is_selected { Color::White } else { Color::White })
+                        format!("{source_str:<47}"),
+                        base_style.fg(if is_selected {
+                            Color::White
+                        } else {
+                            Color::Magenta
+                        }),
+                    ),
+                    Span::styled(
+                        format!("{destination_str:<47}"),
+                        base_style.fg(if is_selected {
+                            Color::White
+                        } else {
+                            Color::Magenta
+                        }),
                     ),
                 ]);
                 ListItem::new(line).style(base_style)
@@ -314,10 +382,14 @@ impl SnifferPage {
     }
     fn handle_mouse_click(&mut self, x: u16, y: u16, area: Rect) {
         // Check if click is within the packet list area
-        if x >= area.x + 1 && x < area.x + area.width - 1 && y > area.y + 1 && y < area.y + area.height - 1 {
+        if x > area.x
+            && x < area.x + area.width - 1
+            && y > area.y + 1
+            && y < area.y + area.height - 1
+        {
             let clicked_row = (y - area.y - 2) as usize; // -2 for border and header
             let packet_index = self.scroll_position + clicked_row;
-            
+
             if packet_index < self.packets.len() {
                 if self.selected_packet == Some(packet_index) {
                     // Double-click behavior: open packet details
@@ -335,11 +407,11 @@ impl SnifferPage {
     fn select_packet(&mut self, index: usize) {
         if index < self.packets.len() {
             self.selected_packet = Some(index);
-            
+
             // Ensure selected packet is visible
             let visible_start = self.scroll_position;
             let visible_end = visible_start + 20; // Approximate visible area
-            
+
             if index < visible_start {
                 self.scroll_position = index;
             } else if index >= visible_end {
@@ -357,11 +429,10 @@ impl Component for SnifferPage {
     }
 
     fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
-        if self.filter_dialog.is_open {
-            if let Some(action) = self.filter_dialog.handle_events(event.clone())? {
+        if self.filter_dialog.is_open
+            && let Some(action) = self.filter_dialog.handle_events(event.clone())? {
                 return Ok(Some(action));
             }
-        }
 
         let r = match event {
             Event::Tick => {
@@ -504,7 +575,7 @@ impl Component for SnifferPage {
                 };
 
                 if let Some(ref filter_text) = self.current_filter {
-                    self.status_message = format!("Filter applied: {}", filter_text);
+                    self.status_message = format!("Filter applied: {filter_text}");
                 } else {
                     self.status_message = "Filter cleared".to_string();
                 }
@@ -514,7 +585,10 @@ impl Component for SnifferPage {
             }
             Action::PacketSelected(index) => {
                 if index < self.packets.len() {
-                    self.status_message = format!("Opening packet details for packet #{}", self.packets[index].id);
+                    self.status_message = format!(
+                        "Opening packet details for packet #{}",
+                        self.packets[index].id
+                    );
                     // Here you could open a detailed packet view
                     // For now, we'll just update the status message
                 }
@@ -544,7 +618,8 @@ impl ComponentRender<()> for SnifferPage {
         }
 
         // Update the mouse click area with actual render area
-        if let Some((x, y)) = std::mem::take(&mut None) { // This would be set by mouse events
+        if let Some((x, y)) = std::mem::take(&mut None) {
+            // This would be set by mouse events
             self.handle_mouse_click(x, y, chunks[0]);
         }
 

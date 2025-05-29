@@ -8,7 +8,7 @@ mod app;
 mod component;
 mod pages;
 mod tui;
-mod utils;
+mod data;
 
 use app::App;
 use tui::{Event, Tui};

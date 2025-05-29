@@ -51,7 +51,7 @@ impl DevicePage {
                 }
             }
             Err(e) => {
-                self.status_message = format!("Failed to list devices: {}", e);
+                self.status_message = format!("Failed to list devices: {e}");
             }
         }
 
@@ -60,8 +60,8 @@ impl DevicePage {
     }
 
     fn select_current_device(&mut self) {
-        if let Some(selected) = self.list_state.selected() {
-            if selected <= self.devices.len() {
+        if let Some(selected) = self.list_state.selected()
+            && selected <= self.devices.len() {
                 self.selected_device = Some(self.devices[selected - 1].clone());
                 self.status_message = format!("Selected device: {}", self.devices[selected].name);
                 if let Some(tx) = &self.action_tx {
@@ -71,7 +71,6 @@ impl DevicePage {
                     }
                 }
             }
-        }
     }
 
     fn clear_selection(&mut self) {
@@ -132,7 +131,7 @@ impl DevicePage {
             let line = Line::from(vec![
                 Span::styled(format!("{:<4}", i + 1), Style::default().fg(Color::Yellow)),
                 Span::styled(
-                    format!("{:<80}", truncated_desc),
+                    format!("{truncated_desc:<80}"),
                     Style::default().fg(Color::Gray),
                 ),
                 Span::styled(&device.name, Style::default().fg(Color::Cyan)),
@@ -264,11 +263,10 @@ impl Component for DevicePage {
                 }
             }
             KeyCode::Enter => {
-                if let Some(selected) = self.list_state.selected() {
-                    if selected > 0 && selected <= self.devices.len() {
+                if let Some(selected) = self.list_state.selected()
+                    && selected > 0 && selected <= self.devices.len() {
                         self.select_current_device();
                     }
-                }
             }
             KeyCode::Char('c') => {
                 self.clear_selection();

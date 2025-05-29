@@ -148,13 +148,13 @@ impl FilterDialog {
 
                 let line = if filter.is_empty() {
                     Line::from(vec![
-                        Span::styled(format!("{:<20}", name), style),
+                        Span::styled(format!("{name:<20}"), style),
                         Span::styled("(removes current filter)", Style::default().fg(Color::Gray)),
                     ])
                 } else {
                     Line::from(vec![
-                        Span::styled(format!("{:<20}", name), style),
-                        Span::styled(format!("- {}", filter), Style::default().fg(Color::Gray)),
+                        Span::styled(format!("{name:<20}"), style),
+                        Span::styled(format!("- {filter}"), Style::default().fg(Color::Gray)),
                     ])
                 };
                 
