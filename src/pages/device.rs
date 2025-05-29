@@ -61,16 +61,17 @@ impl DevicePage {
 
     fn select_current_device(&mut self) {
         if let Some(selected) = self.list_state.selected()
-            && selected <= self.devices.len() {
-                self.selected_device = Some(self.devices[selected - 1].clone());
-                self.status_message = format!("Selected device: {}", self.devices[selected].name);
-                if let Some(tx) = &self.action_tx {
-                    let action = Action::DeviceSelected(self.devices[selected - 1].name.clone());
-                    if tx.send(action).is_err() {
-                        self.status_message = "Failed to send device selection action.".to_string();
-                    }
+            && selected <= self.devices.len()
+        {
+            self.selected_device = Some(self.devices[selected - 1].clone());
+            self.status_message = format!("Selected device: {}", self.devices[selected].name);
+            if let Some(tx) = &self.action_tx {
+                let action = Action::DeviceSelected(self.devices[selected - 1].name.clone());
+                if tx.send(action).is_err() {
+                    self.status_message = "Failed to send device selection action.".to_string();
                 }
             }
+        }
     }
 
     fn clear_selection(&mut self) {
@@ -264,9 +265,11 @@ impl Component for DevicePage {
             }
             KeyCode::Enter => {
                 if let Some(selected) = self.list_state.selected()
-                    && selected > 0 && selected <= self.devices.len() {
-                        self.select_current_device();
-                    }
+                    && selected > 0
+                    && selected <= self.devices.len()
+                {
+                    self.select_current_device();
+                }
             }
             KeyCode::Char('c') => {
                 self.clear_selection();

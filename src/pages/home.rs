@@ -227,9 +227,10 @@ impl ComponentRender<()> for HomePage {
         if let Some((x, y)) = self.mouse_event.take() {
             let action = self.handle_mouse_click(x, y, chunks[0]);
             if let Some(action) = action
-                && let Some(tx) = &self.action_tx {
-                    let _ = tx.send(action);
-                }
+                && let Some(tx) = &self.action_tx
+            {
+                let _ = tx.send(action);
+            }
         }
 
         self.render_menu(f, chunks[0]);

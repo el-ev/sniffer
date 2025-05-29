@@ -18,9 +18,9 @@ use tokio::sync::mpsc;
 use crate::{
     action::Action,
     component::{Component, ComponentRender},
+    data::packet::{PacketInfo, parse_packet},
     pages::filter::FilterDialog,
     tui::Event,
-    data::packet::{PacketInfo, parse_packet},
 };
 
 pub struct SnifferPage {
@@ -72,9 +72,8 @@ impl SnifferPage {
 
     pub fn set_device(&mut self, device_name: String) {
         self.device_name = Some(device_name.clone());
-        self.status_message = format!(
-            "Device set to: {device_name}. Press 'S' to start capturing."
-        );
+        self.status_message =
+            format!("Device set to: {device_name}. Press 'S' to start capturing.");
     }
 
     fn start_capture(&mut self) -> Result<()> {
@@ -438,9 +437,10 @@ impl Component for SnifferPage {
 
     fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
         if self.filter_dialog.is_open
-            && let Some(action) = self.filter_dialog.handle_events(event.clone())? {
-                return Ok(Some(action));
-            }
+            && let Some(action) = self.filter_dialog.handle_events(event.clone())?
+        {
+            return Ok(Some(action));
+        }
 
         let r = match event {
             Event::Tick => {
@@ -597,7 +597,6 @@ impl Component for SnifferPage {
                         "Opening packet details for packet #{}",
                         self.packets[index].id
                     );
-                    
                 }
             }
             _ => {}

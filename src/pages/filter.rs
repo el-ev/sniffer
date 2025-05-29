@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect, Alignment},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
@@ -123,19 +123,22 @@ impl FilterDialog {
             .style(Style::default().fg(Color::Gray))
             .wrap(Wrap { trim: false });
 
-        f.render_widget(help, input_area[1]);        // Show cursor
+        f.render_widget(help, input_area[1]); // Show cursor
         if self.mode == FilterMode::CustomInput {
             let cursor_x = input_area[0].x + 1 + self.cursor_position as u16;
             let cursor_y = input_area[0].y + 1;
             if cursor_x < input_area[0].x + input_area[0].width - 1 {
-                f.set_cursor_position(ratatui::layout::Position { x: cursor_x, y: cursor_y });
+                f.set_cursor_position(ratatui::layout::Position {
+                    x: cursor_x,
+                    y: cursor_y,
+                });
             }
         }
     }
 
     fn render_preset_selection(&self, f: &mut Frame, area: Rect) {
         let presets = Self::get_filter_presets();
-        
+
         let items: Vec<ListItem> = presets
             .iter()
             .enumerate()
@@ -157,7 +160,7 @@ impl FilterDialog {
                         Span::styled(format!("- {filter}"), Style::default().fg(Color::Gray)),
                     ])
                 };
-                
+
                 ListItem::new(line).style(style)
             })
             .collect();
@@ -167,7 +170,7 @@ impl FilterDialog {
                 Block::default()
                     .title("Filter Presets")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan))
+                    .border_style(Style::default().fg(Color::Cyan)),
             )
             .highlight_style(Style::default().bg(Color::Blue));
 
@@ -181,10 +184,11 @@ impl FilterDialog {
             height: 3,
         };
 
-        let help = Paragraph::new("Tab: Switch to custom input  Enter: Apply  ↑/↓: Navigate  Esc: Cancel")
-            .style(Style::default().fg(Color::Yellow))
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true });
+        let help =
+            Paragraph::new("Tab: Switch to custom input  Enter: Apply  ↑/↓: Navigate  Esc: Cancel")
+                .style(Style::default().fg(Color::Yellow))
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true });
 
         f.render_widget(help, help_area);
     }
@@ -232,12 +236,10 @@ impl Component for FilterDialog {
                 }
                 Ok(Some(Action::Handled))
             }
-            _ => {
-                match self.mode {
-                    FilterMode::CustomInput => self.handle_custom_input(key),
-                    FilterMode::PresetSelection => self.handle_preset_sel(key),
-                }
-            }
+            _ => match self.mode {
+                FilterMode::CustomInput => self.handle_custom_input(key),
+                FilterMode::PresetSelection => self.handle_preset_sel(key),
+            },
         }
     }
 

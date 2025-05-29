@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use crate::{
     action::Action,
     component::{Component, ComponentRender},
-    pages::{device::DevicePage, home::HomePage, sniffer::SnifferPage, detail::PacketDetailsPage},
+    pages::{detail::PacketDetailsPage, device::DevicePage, home::HomePage, sniffer::SnifferPage},
     tui::Event,
 };
 
@@ -146,7 +146,8 @@ impl App {
                 Page::Sniffer => {
                     self.sniffer_page.update(action)?;
                 }
-                Page::PacketDetails => { // Handle packet details updates
+                Page::PacketDetails => {
+                    // Handle packet details updates
                     self.packet_details_page.update(action)?;
                 }
             },

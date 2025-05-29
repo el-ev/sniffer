@@ -23,7 +23,6 @@ pub struct PacketDetailsPage {
     action_tx: Option<mpsc::UnboundedSender<Action>>,
 }
 
-
 impl PacketDetailsPage {
     pub fn new() -> Self {
         Self::default()
@@ -38,20 +37,43 @@ impl PacketDetailsPage {
         if let Some(ref packet) = self.packet {
             let info_lines = vec![
                 Line::from(vec![
-                    Span::styled("Packet ID: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "Packet ID: ",
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                     Span::styled(packet.id.to_string(), Style::default().fg(Color::White)),
                 ]),
                 Line::from(vec![
-                    Span::styled("Timestamp: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "Timestamp: ",
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                     Span::styled(packet.timestamp.clone(), Style::default().fg(Color::White)),
                 ]),
                 Line::from(vec![
-                    Span::styled("Protocol: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "Protocol: ",
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                     Span::styled(packet.protocol.clone(), Style::default().fg(Color::Yellow)),
                 ]),
                 Line::from(vec![
-                    Span::styled("Length: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-                    Span::styled(format!("{} bytes", packet.length), Style::default().fg(Color::Green)),
+                    Span::styled(
+                        "Length: ",
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!("{} bytes", packet.length),
+                        Style::default().fg(Color::Green),
+                    ),
                 ]),
             ];
 
@@ -60,12 +82,25 @@ impl PacketDetailsPage {
             if let Some(src_ip) = packet.src_ip {
                 let src_line = if let Some(src_port) = packet.src_port {
                     Line::from(vec![
-                        Span::styled("Source: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-                        Span::styled(format!("{src_ip}:{src_port}"), Style::default().fg(Color::Magenta)),
+                        Span::styled(
+                            "Source: ",
+                            Style::default()
+                                .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                        Span::styled(
+                            format!("{src_ip}:{src_port}"),
+                            Style::default().fg(Color::Magenta),
+                        ),
                     ])
                 } else {
                     Line::from(vec![
-                        Span::styled("Source IP: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "Source IP: ",
+                            Style::default()
+                                .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::styled(src_ip.to_string(), Style::default().fg(Color::Magenta)),
                     ])
                 };
@@ -75,12 +110,25 @@ impl PacketDetailsPage {
             if let Some(dst_ip) = packet.dst_ip {
                 let dst_line = if let Some(dst_port) = packet.dst_port {
                     Line::from(vec![
-                        Span::styled("Destination: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-                        Span::styled(format!("{dst_ip}:{dst_port}"), Style::default().fg(Color::Magenta)),
+                        Span::styled(
+                            "Destination: ",
+                            Style::default()
+                                .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                        Span::styled(
+                            format!("{dst_ip}:{dst_port}"),
+                            Style::default().fg(Color::Magenta),
+                        ),
                     ])
                 } else {
                     Line::from(vec![
-                        Span::styled("Destination IP: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "Destination IP: ",
+                            Style::default()
+                                .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::styled(dst_ip.to_string(), Style::default().fg(Color::Magenta)),
                     ])
                 };
@@ -127,20 +175,26 @@ impl PacketDetailsPage {
         }
         let packet = self.packet.as_ref().unwrap();
         let mut hex_lines = Vec::new();
-        
+
         // Header
         hex_lines.push(ListItem::new(Line::from(vec![
             Span::styled(
                 format!(" {:^9}", "Offset"),
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 format!("{:^48}", "Hex"),
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 format!("{:^16}", "ASCII"),
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ),
         ])));
 
@@ -149,7 +203,7 @@ impl PacketDetailsPage {
         let start_offset = self.hex_scroll * bytes_per_line;
         let end_offset = std::cmp::min(
             start_offset + (visible_lines * bytes_per_line),
-            packet.data.len()
+            packet.data.len(),
         );
 
         for offset in (start_offset..end_offset).step_by(bytes_per_line) {
@@ -165,7 +219,7 @@ impl PacketDetailsPage {
                     hex_str.push(' ');
                 }
                 hex_str.push_str(&format!("{byte:02x}"));
-                
+
                 // ASCII representation
                 if byte.is_ascii_graphic() || byte == b' ' {
                     ascii_str.push(byte as char);
@@ -180,10 +234,7 @@ impl PacketDetailsPage {
             }
 
             let line = Line::from(vec![
-                Span::styled(
-                    format!(" {offset:08x}"),
-                    Style::default().fg(Color::Yellow),
-                ),
+                Span::styled(format!(" {offset:08x}"), Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::styled(hex_str, Style::default().fg(Color::Green)),
                 Span::raw(" "),
@@ -193,13 +244,12 @@ impl PacketDetailsPage {
             hex_lines.push(ListItem::new(line));
         }
 
-        let hex_list = List::new(hex_lines)
-            .block(
-                Block::default()
-                    .title(format!(" Hex Viewer ({} bytes)", packet.data.len()))
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Blue)),
-            );
+        let hex_list = List::new(hex_lines).block(
+            Block::default()
+                .title(format!(" Hex Viewer ({} bytes)", packet.data.len()))
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Blue)),
+        );
 
         f.render_widget(hex_list, area);
     }
@@ -279,9 +329,9 @@ impl ComponentRender<()> for PacketDetailsPage {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(8),  // Packet info
-                Constraint::Min(10),    // Hex viewer
-                Constraint::Length(1),  // Help
+                Constraint::Length(8), // Packet info
+                Constraint::Min(10),   // Hex viewer
+                Constraint::Length(1), // Help
             ])
             .split(area);
 

@@ -6,9 +6,9 @@ use tokio::time::{self, Duration};
 mod action;
 mod app;
 mod component;
+mod data;
 mod pages;
 mod tui;
-mod data;
 
 use app::App;
 use tui::{Event, Tui};
