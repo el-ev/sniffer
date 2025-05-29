@@ -1,0 +1,2 @@
+[build]
+rustflags = ["-L", "pcap\\Lib\\x64"]
