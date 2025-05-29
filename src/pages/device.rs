@@ -185,9 +185,9 @@ impl DevicePage {
 
     fn render_help(&self, f: &mut Frame, area: Rect) {
         let help_text = if self.selected_device.is_some() {
-            "↑/↓: Navigate  Enter: Select Device  Q/Esc: Home  B: Back  F5: Refresh  C: Clear Selection"
+            "↑/↓: Navigate  Enter: Select Device  Q/Esc: Home  F5: Refresh  C: Clear Selection"
         } else {
-            "↑/↓: Navigate  Enter: Select Device  Q/Esc: Home  B: Back  F5: Refresh"
+            "↑/↓: Navigate  Enter: Select Device  Q/Esc: Home  F5: Refresh"
         };
 
         let help = Paragraph::new(help_text)
@@ -270,9 +270,6 @@ impl Component for DevicePage {
             }
             KeyCode::Char('c') => {
                 self.clear_selection();
-            }
-            KeyCode::Char('b') => {
-                return Ok(Some(Action::NavigateToHome));
             }
             KeyCode::Char('q') => {
                 return Ok(Some(Action::NavigateToHome));

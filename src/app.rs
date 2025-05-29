@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use crate::{
     action::Action,
     component::{Component, ComponentRender},
-    pages::{device::DevicePage, home::HomePage, sniffer::SnifferPage},
+    pages::{device::DevicePage, home::HomePage, sniffer::SnifferPage, detail::PacketDetailsPage},
     tui::Event,
 };
 
@@ -15,6 +15,7 @@ pub enum Page {
     Home,
     Device,
     Sniffer,
+    PacketDetails,
 }
 
 pub struct App {
@@ -24,6 +25,7 @@ pub struct App {
     pub home_page: HomePage,
     pub device_page: DevicePage,
     pub sniffer_page: SnifferPage,
+    pub packet_details_page: PacketDetailsPage,
 
     action_tx: mpsc::UnboundedSender<Action>,
 }
@@ -36,6 +38,7 @@ impl App {
             home_page: HomePage::new(),
             device_page: DevicePage::new(),
             sniffer_page: SnifferPage::new(),
+            packet_details_page: PacketDetailsPage::new(),
             action_tx,
         }
     }
@@ -49,6 +52,8 @@ impl App {
             .register_action_handler(action_tx.clone())?;
         self.sniffer_page
             .register_action_handler(action_tx.clone())?;
+        self.packet_details_page
+            .register_action_handler(action_tx.clone())?; // Register packet details page
 
         Ok(())
     }
@@ -67,6 +72,7 @@ impl App {
                         Page::Home => self.home_page.handle_events(event)?,
                         Page::Device => self.device_page.handle_events(event)?,
                         Page::Sniffer => self.sniffer_page.handle_events(event)?,
+                        Page::PacketDetails => self.packet_details_page.handle_events(event)?, // Handle packet details events
                     }
                 }
             }
@@ -74,6 +80,7 @@ impl App {
                 Page::Home => self.home_page.handle_events(event)?,
                 Page::Device => self.device_page.handle_events(event)?,
                 Page::Sniffer => self.sniffer_page.handle_events(event)?,
+                Page::PacketDetails => self.packet_details_page.handle_events(event)?, // Handle packet details events
             },
         };
 
@@ -120,10 +127,11 @@ impl App {
                 self.current_page = Page::Sniffer;
             }
             Action::PacketSelected(index) => {
-                // Handle packet selection - for now just pass it to the sniffer page
                 self.sniffer_page.update(Action::PacketSelected(index))?;
-                // You could add navigation to a packet detail page here
-                // self.current_page = Page::PacketDetail(index);
+                if let Some(packet) = self.sniffer_page.get_packet(index) {
+                    self.packet_details_page.set_packet(packet);
+                    self.current_page = Page::PacketDetails;
+                }
             }
             Action::Quit => {
                 self.quit();
@@ -138,6 +146,9 @@ impl App {
                 Page::Sniffer => {
                     self.sniffer_page.update(action)?;
                 }
+                Page::PacketDetails => { // Handle packet details updates
+                    self.packet_details_page.update(action)?;
+                }
             },
         }
         Ok(())
@@ -151,6 +162,7 @@ impl ComponentRender<()> for App {
             Page::Home => self.home_page.render(f, area, ()),
             Page::Device => self.device_page.render(f, area, ()),
             Page::Sniffer => self.sniffer_page.render(f, area, ()),
+            Page::PacketDetails => self.packet_details_page.render(f, area, ()), // Render packet details page
         }
     }
 }

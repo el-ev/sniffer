@@ -136,7 +136,7 @@ impl SnifferPage {
                                 .as_secs_f64()
                         );
 
-                        let packet_info = parse_packet(packet_id, timestamp, packet.data);
+                        let packet_info = parse_packet(packet_id, timestamp, packet.data.into());
 
                         if packet_tx.send(packet_info).is_err() {
                             break;
@@ -292,7 +292,7 @@ impl SnifferPage {
                         }),
                     ),
                     Span::styled(
-                        format!("{:<10}", packet.protocol),
+                        format!("{:<10}", &packet.protocol[..8.min(packet.protocol.len())]),
                         base_style.fg(if is_selected {
                             Color::White
                         } else {
@@ -417,6 +417,14 @@ impl SnifferPage {
             } else if index >= visible_end {
                 self.scroll_position = index.saturating_sub(19);
             }
+        }
+    }
+
+    pub fn get_packet(&self, index: usize) -> Option<PacketInfo> {
+        if index < self.packets.len() {
+            Some(self.packets[index].clone())
+        } else {
+            None
         }
     }
 }
@@ -589,8 +597,7 @@ impl Component for SnifferPage {
                         "Opening packet details for packet #{}",
                         self.packets[index].id
                     );
-                    // Here you could open a detailed packet view
-                    // For now, we'll just update the status message
+                    
                 }
             }
             _ => {}

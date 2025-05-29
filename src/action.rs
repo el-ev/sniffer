@@ -7,5 +7,5 @@ pub enum Action {
     DeviceSelected(String),
     ApplyFilter(String),
     Handled,
-    PacketSelected(usize), // New action for packet selection
+    PacketSelected(usize),
 }

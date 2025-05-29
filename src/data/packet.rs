@@ -1,8 +1,8 @@
-use std::net::IpAddr;
+use std::{net::IpAddr, sync::Arc};
 
 use etherparse::{InternetSlice, SlicedPacket, TransportSlice};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PacketInfo {
     pub id: usize,
     pub timestamp: String,
@@ -12,17 +12,17 @@ pub struct PacketInfo {
     pub dst_port: Option<u16>,
     pub protocol: String,
     pub length: usize,
+    pub data: Arc<[u8]>,
 }
 
-pub fn parse_packet(id: usize, timestamp: String, data: &[u8]) -> PacketInfo {
-    match SlicedPacket::from_ethernet(data) {
+pub fn parse_packet(id: usize, timestamp: String, data: Arc<[u8]>) -> PacketInfo {
+    let mut src_ip: Option<IpAddr> = None;
+    let mut dst_ip: Option<IpAddr> = None;
+    let mut src_port: Option<u16> = None;
+    let mut dst_port: Option<u16> = None;
+    let mut protocol = "Unknown".to_string();
+    match SlicedPacket::from_ethernet(&data) {
         Ok(packet_info) => {
-            let mut src_ip: Option<IpAddr> = None;
-            let mut dst_ip: Option<IpAddr> = None;
-            let mut src_port: Option<u16> = None;
-            let mut dst_port: Option<u16> = None;
-            let mut protocol = "Unknown".to_string();
-
             if let Some(ip_slice) = packet_info.net {
                 match ip_slice {
                     InternetSlice::Ipv4(ipv4) => {
@@ -40,7 +40,6 @@ pub fn parse_packet(id: usize, timestamp: String, data: &[u8]) -> PacketInfo {
                     }
                 }
             }
-
             if let Some(transport_slice) = packet_info.transport {
                 match transport_slice {
                     TransportSlice::Tcp(tcp) => {
@@ -61,27 +60,20 @@ pub fn parse_packet(id: usize, timestamp: String, data: &[u8]) -> PacketInfo {
                     }
                 }
             }
-
-            PacketInfo {
-                id,
-                timestamp,
-                src_ip,
-                src_port,
-                dst_ip,
-                dst_port,
-                protocol,
-                length: data.len(),
-            }
         }
-        Err(_) => PacketInfo {
-            id,
-            timestamp,
-            src_ip: None,
-            src_port: None,
-            dst_ip: None,
-            dst_port: None,
-            protocol: "Unknown".to_string(),
-            length: data.len(),
-        },
+        Err(_) => {
+            protocol = "Unknown".to_string();
+        }
+    }
+    PacketInfo {
+        id,
+        timestamp,
+        src_ip,
+        src_port,
+        dst_ip,
+        dst_port,
+        protocol,
+        length: data.len(),
+        data,
     }
 }
