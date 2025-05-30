@@ -89,7 +89,7 @@ impl SnifferPage {
             let mut cap = Capture::from_device(device.clone())?
                 .promisc(true)
                 .snaplen(5000)
-                .timeout(1000)
+                .timeout(100)
                 .open()?;
 
             if let Some(ref filter) = self.current_filter {
@@ -156,6 +156,9 @@ impl SnifferPage {
 
     fn stop_capture(&mut self) {
         self.stop_capture_flag.store(true, Ordering::Relaxed);
+        if self.selected_packet.is_none() {
+            self.selected_packet = Some(self.packets.len().saturating_sub(1));
+        }
         self.is_capturing = false;
 
         // Wait for capture thread to finish
@@ -237,7 +240,7 @@ impl SnifferPage {
             .skip(visible_start)
             .take(visible_end - visible_start)
             .map(|(i, packet)| {
-                let is_selected = self.selected_packet == Some(i);
+                let is_selected = !self.following && self.selected_packet == Some(i);
                 let base_style = if is_selected {
                     Style::default()
                         .bg(Color::Blue)
@@ -246,32 +249,43 @@ impl SnifferPage {
                     Style::default()
                 };
 
-                let source_str = if let Some(src_ip) = packet.src_ip {
-                    if let Some(src_port) = packet.src_port {
-                        if src_ip.is_ipv6() {
-                            format!("[{src_ip}]:{src_port}")
-                        } else {
-                            format!("{src_ip}:{src_port}")
+                let source_str = if let Some(ref src) = packet.src_addr {
+                    match src {
+                        Ok(src_ip) => {
+                            if let Some(src_port) = packet.src_port {
+                                if src_ip.is_ipv6() {
+                                    format!("[{src_ip}]:{src_port}")
+                                } else {
+                                    format!("{src_ip}:{src_port}")
+                                }
+                            } else {
+                                src_ip.to_string()
+                            }
                         }
-                    } else {
-                        src_ip.to_string()
+                        Err(hw_addr) => hw_addr.to_owned(),
                     }
                 } else {
                     "N/A".to_string()
                 };
-                let destination_str = if let Some(dst_ip) = packet.dst_ip {
-                    if let Some(dst_port) = packet.dst_port {
-                        if dst_ip.is_ipv6() {
-                            format!("[{dst_ip}]:{dst_port}")
-                        } else {
-                            format!("{dst_ip}:{dst_port}")
+
+                let destination_str = if let Some(ref dst) = packet.dst_addr {
+                    match dst {
+                        Ok(dst_ip) => {
+                            if let Some(dst_port) = packet.dst_port {
+                                if dst_ip.is_ipv6() {
+                                    format!("[{dst_ip}]:{dst_port}")
+                                } else {
+                                    format!("{dst_ip}:{dst_port}")
+                                }
+                            } else {
+                                dst_ip.to_string()
+                            }
                         }
-                    } else {
-                        dst_ip.to_string()
+                        Err(hw_addr) => hw_addr.to_owned(),
                     }
                 } else {
                     "N/A".to_string()
-                };
+                };                
 
                 let line = Line::from(vec![
                     Span::styled(
@@ -529,9 +543,13 @@ impl Component for SnifferPage {
                 self.status_message = "Cleared packet list.".to_string();
             }
             KeyCode::Char('f') => {
-                self.following = !self.following;
                 if !self.following {
+                    self.following = true;
+                    self.selected_packet = None;
+                } else {
+                    self.following = false;
                     self.selected_packet = Some(self.packets.len().saturating_sub(1));
+
                 }
                 return Ok(Some(Action::Handled));
             }

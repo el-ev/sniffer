@@ -42,16 +42,18 @@ async fn main() -> Result<()> {
         let timeout = Duration::from_millis(16); // ~60 FPS
 
         if event::poll(timeout)? {
-            match event::read()? {
-                CrosstermEvent::Key(key) => {
-                    if key.kind == KeyEventKind::Press {
-                        app.handle_events(Event::Key(key))?;
+            while event::poll(Duration::from_millis(0))? {
+                match event::read()? {
+                    CrosstermEvent::Key(key) => {
+                        if key.kind == KeyEventKind::Press {
+                            app.handle_events(Event::Key(key))?;
+                        }
                     }
+                    CrosstermEvent::Mouse(mouse) => {
+                        app.handle_events(Event::Mouse(mouse))?;
+                    }
+                    _ => {}
                 }
-                CrosstermEvent::Mouse(mouse) => {
-                    app.handle_events(Event::Mouse(mouse))?;
-                }
-                _ => {}
             }
         }
 

@@ -79,60 +79,92 @@ impl PacketDetailsPage {
 
             let mut info_text = info_lines;
 
-            if let Some(src_ip) = packet.src_ip {
-                let src_line = if let Some(src_port) = packet.src_port {
-                    Line::from(vec![
-                        Span::styled(
-                            "Source: ",
-                            Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Span::styled(
-                            format!("{src_ip}:{src_port}"),
-                            Style::default().fg(Color::Magenta),
-                        ),
-                    ])
-                } else {
-                    Line::from(vec![
-                        Span::styled(
-                            "Source IP: ",
-                            Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Span::styled(src_ip.to_string(), Style::default().fg(Color::Magenta)),
-                    ])
-                };
-                info_text.push(src_line);
+            if let Some(ref src) = packet.src_addr {
+                match src {
+                    Ok(src_ip) => {
+                        let src_line = if let Some(src_port) = packet.src_port {
+                            Line::from(vec![
+                                Span::styled(
+                                    "Source: ",
+                                    Style::default()
+                                        .fg(Color::Cyan)
+                                        .add_modifier(Modifier::BOLD),
+                                ),
+                                Span::styled(
+                                    format!("{src_ip}:{src_port}"),
+                                    Style::default().fg(Color::Magenta),
+                                ),
+                            ])
+                        } else {
+                            Line::from(vec![
+                                Span::styled(
+                                    "Source IP: ",
+                                    Style::default()
+                                        .fg(Color::Cyan)
+                                        .add_modifier(Modifier::BOLD),
+                                ),
+                                Span::styled(src_ip.to_string(), Style::default().fg(Color::Magenta)),
+                            ])
+                        };
+                        info_text.push(src_line);
+                    }
+                    Err(src_mac) => {
+                        let src_line = Line::from(vec![
+                            Span::styled(
+                                "Source MAC: ",
+                                Style::default()
+                                    .fg(Color::Cyan)
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                            Span::styled(src_mac, Style::default().fg(Color::Magenta)),
+                        ]);
+                        info_text.push(src_line);
+                    }
+                }
             }
 
-            if let Some(dst_ip) = packet.dst_ip {
-                let dst_line = if let Some(dst_port) = packet.dst_port {
-                    Line::from(vec![
-                        Span::styled(
-                            "Destination: ",
-                            Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Span::styled(
-                            format!("{dst_ip}:{dst_port}"),
-                            Style::default().fg(Color::Magenta),
-                        ),
-                    ])
-                } else {
-                    Line::from(vec![
-                        Span::styled(
-                            "Destination IP: ",
-                            Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Span::styled(dst_ip.to_string(), Style::default().fg(Color::Magenta)),
-                    ])
-                };
-                info_text.push(dst_line);
+            if let Some(ref dst) = packet.dst_addr {
+                match dst {
+                    Ok(dst_ip) => {
+                        let dst_line = if let Some(dst_port) = packet.dst_port {
+                            Line::from(vec![
+                                Span::styled(
+                                    "Destination: ",
+                                    Style::default()
+                                        .fg(Color::Cyan)
+                                        .add_modifier(Modifier::BOLD),
+                                ),
+                                Span::styled(
+                                    format!("{dst_ip}:{dst_port}"),
+                                    Style::default().fg(Color::Magenta),
+                                ),
+                            ])
+                        } else {
+                            Line::from(vec![
+                                Span::styled(
+                                    "Destination IP: ",
+                                    Style::default()
+                                        .fg(Color::Cyan)
+                                        .add_modifier(Modifier::BOLD),
+                                ),
+                                Span::styled(dst_ip.to_string(), Style::default().fg(Color::Magenta)),
+                            ])
+                        };
+                        info_text.push(dst_line);
+                    }
+                    Err(dst_mac) => {
+                        let dst_line = Line::from(vec![
+                            Span::styled(
+                                "Destination MAC: ",
+                                Style::default()
+                                    .fg(Color::Cyan)
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                            Span::styled(dst_mac, Style::default().fg(Color::Magenta)),
+                        ]);
+                        info_text.push(dst_line);
+                    }
+                }
             }
 
             let paragraph = Paragraph::new(info_text)
